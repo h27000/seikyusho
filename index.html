@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>請求書作成</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    background: #f0f2f5;
+    color: #333;
+  }
+
+  /* ===== 編集パネル ===== */
+  #editor {
+    width: 380px;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    background: #fff;
+    border-right: 1px solid #ddd;
+    overflow-y: auto;
+    padding: 20px;
+    z-index: 10;
+  }
+
+  #editor h2 {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #4f8ef7;
+  }
+
+  .section { margin-bottom: 24px; }
+
+  .section h3 {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 3px;
+    margin-top: 8px;
+  }
+
+  input[type="text"], input[type="date"], input[type="number"], textarea {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    color: #333;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, textarea:focus {
+    outline: none;
+    border-color: #4f8ef7;
+  }
+
+  textarea { resize: vertical; min-height: 60px; }
+
+  .btn {
+    display: inline-block;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+
+  .btn-primary { background: #4f8ef7; color: #fff; }
+  .btn-danger  { background: #f76f6f; color: #fff; font-size: 11px; padding: 5px 9px; }
+  .btn-success { background: #4caf7d; color: #fff; width: 100%; padding: 12px; font-size: 15px; font-weight: bold; border-radius: 8px; }
+
+  /* 明細テーブル */
+  #items-editor { width: 100%; border-collapse: collapse; font-size: 12px; }
+  #items-editor th { background: #f5f7fa; padding: 6px 4px; text-align: left; color: #888; font-weight: normal; }
+  #items-editor td { padding: 4px 2px; vertical-align: middle; }
+  #items-editor td input { padding: 5px 6px; }
+
+  /* ===== プレビューエリア ===== */
+  #preview-area {
+    margin-left: 380px;
+    padding: 40px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  #preview-area h2 {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 20px;
+    align-self: flex-start;
+    margin-left: 20px;
+  }
+
+  /* ===== 請求書本体 ===== */
+  #invoice {
+    width: 794px;
+    min-height: 1123px;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    padding: 60px 70px;
+    position: relative;
+  }
+
+  .inv-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 8px;
+    margin-bottom: 32px;
+    color: #222;
+  }
+
+  .inv-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 36px;
+  }
+
+  .inv-to { flex: 1; }
+
+  .inv-to .client-name {
+    font-size: 18px;
+    font-weight: bold;
+    border-bottom: 2px solid #333;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    min-width: 200px;
+  }
+
+  .inv-to .honorific { font-size: 13px; color: #666; margin-left: 4px; }
+
+  .inv-info { text-align: right; font-size: 13px; line-height: 2; }
+
+
+  .inv-from {
+    text-align: right;
+    font-size: 13px;
+    line-height: 1.8;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .inv-from .from-name { font-size: 16px; font-weight: bold; }
+
+  /* 合計金額 */
+  .inv-total-box {
+    background: #f5f7fa;
+    border: 1px solid #e0e4ea;
+    border-radius: 8px;
+    padding: 16px 24px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .inv-total-label { font-size: 14px; color: #555; }
+
+  .inv-total-amount {
+    font-size: 28px;
+    font-weight: bold;
+    color: #222;
+  }
+
+  .inv-total-amount span { font-size: 14px; margin-right: 4px; }
+
+  /* 明細 */
+  .inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .inv-table thead tr {
+    background: #333;
+    color: #fff;
+  }
+
+  .inv-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: normal;
+    font-size: 12px;
+  }
+
+  .inv-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .inv-table tbody tr:last-child td { border-bottom: none; }
+  .inv-table tbody tr:nth-child(even) { background: #fafafa; }
+
+  .text-right { text-align: right; }
+
+  .inv-subtotals {
+    width: 260px;
+    margin-left: auto;
+    font-size: 13px;
+    line-height: 2;
+  }
+
+  .inv-subtotals tr td:first-child { color: #666; }
+  .inv-subtotals tr td:last-child { text-align: right; font-weight: 500; }
+
+  .inv-subtotals .total-row td {
+    font-size: 15px;
+    font-weight: bold;
+    padding-top: 6px;
+    border-top: 2px solid #333;
+  }
+
+  /* 備考・振込先 */
+  .inv-notes {
+    margin-top: 32px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.8;
+  }
+
+  .inv-notes h4 {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
+    font-weight: normal;
+  }
+
+  .inv-notes .block { margin-bottom: 16px; }
+  .inv-notes .content { white-space: pre-wrap; }
+
+
+  /* ===== 印刷スタイル ===== */
+  @media print {
+    body { background: #fff; }
+    #editor { display: none; }
+    #preview-area { margin-left: 0; padding: 0; }
+    #preview-area > h2 { display: none; }
+    #invoice {
+      box-shadow: none;
+      width: 100%;
+      min-height: auto;
+      padding: 20mm 25mm;
+    }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 編集パネル ===== -->
+<div id="editor">
+  <h2>請求書を編集</h2>
+
+  <div class="section">
+    <h3>請求先</h3>
+    <label>会社名 / 氏名</label>
+    <input type="text" id="clientName" value="株式会社サンプル" oninput="render()">
+  </div>
+
+  <div class="section">
+    <h3>発行者情報</h3>
+    <label>会社名 / 氏名</label>
+    <input type="text" id="fromName" value="田中 花子" oninput="render()">
+    <label>住所</label>
+    <input type="text" id="fromAddress" value="東京都渋谷区○○1-2-3" oninput="render()">
+    <label>電話番号</label>
+    <input type="text" id="fromTel" value="03-0000-0000" oninput="render()">
+    <label>メールアドレス</label>
+    <input type="text" id="fromEmail" value="example@email.com" oninput="render()">
+  </div>
+
+  <div class="section">
+    <h3>請求書情報</h3>
+    <label>請求書番号</label>
+    <input type="text" id="invNumber" value="INV-2024-001" oninput="render()">
+    <label>発行日</label>
+    <input type="date" id="issueDate" oninput="render()">
+  </div>
+
+  <div class="section">
+    <h3>明細</h3>
+    <table id="items-editor">
+      <thead>
+        <tr>
+          <th style="width:40%">品目</th>
+          <th style="width:18%">数量</th>
+          <th style="width:25%">単価</th>
+          <th style="width:17%"></th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+    <button class="btn btn-primary no-print" style="margin-top:10px;width:100%" onclick="addItem()">＋ 明細を追加</button>
+
+    <label style="margin-top:14px">消費税率</label>
+    <select id="taxRate" onchange="render()" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;color:#333">
+      <option value="0.10" selected>10%</option>
+      <option value="0.08">8%（軽減税率）</option>
+      <option value="0">非課税</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h3>振込先</h3>
+    <label>銀行名</label>
+    <input type="text" id="bankName" value="○○銀行 △△支店" oninput="render()">
+    <label>口座種別・番号</label>
+    <input type="text" id="bankAccount" value="普通 1234567" oninput="render()">
+    <label>口座名義</label>
+    <input type="text" id="bankHolder" value="タナカ ハナコ" oninput="render()">
+  </div>
+
+  <div class="section">
+    <h3>備考</h3>
+    <textarea id="notes" rows="3" oninput="render()">お振込手数料はご負担ください。</textarea>
+  </div>
+
+  <div class="section">
+    <button class="btn btn-success no-print" onclick="printInvoice()">
+      📄 PDFで保存 / 印刷
+    </button>
+    <p style="font-size:11px;color:#aaa;text-align:center;margin-top:8px">
+      印刷ダイアログで「PDFとして保存」を選択してください
+    </p>
+  </div>
+</div>
+
+<!-- ===== プレビューエリア ===== -->
+<div id="preview-area">
+  <h2>プレビュー</h2>
+  <div id="invoice">
+    <!-- JSで描画 -->
+  </div>
+</div>
+
+<script>
+  // 初期明細データ
+  let items = [
+    { name: 'Webサイト制作', qty: 1, price: 150000 },
+    { name: 'デザイン費',    qty: 1, price:  50000 },
+    { name: '月次保守費',    qty: 3, price:  20000 },
+  ];
+
+  // 今日の日付を初期値にセット
+  const today = new Date();
+  const fmt = d => d.toISOString().split('T')[0];
+  document.getElementById('issueDate').value = fmt(today);
+
+  function addItem() {
+    items.push({ name: '', qty: 1, price: 0 });
+    renderEditor();
+    render();
+  }
+
+  function removeItem(i) {
+    items.splice(i, 1);
+    renderEditor();
+    render();
+  }
+
+  function updateItem(i, field, val) {
+    items[i][field] = field === 'name' ? val : (parseFloat(val) || 0);
+    render();
+  }
+
+  function renderEditor() {
+    const tbody = document.getElementById('itemsBody');
+    tbody.innerHTML = '';
+    items.forEach((item, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text"   value="${esc(item.name)}"  oninput="updateItem(${i},'name',this.value)"  placeholder="品目名"></td>
+        <td><input type="number" value="${item.qty}"         oninput="updateItem(${i},'qty',this.value)"   min="1" style="text-align:right"></td>
+        <td><input type="number" value="${item.price}"       oninput="updateItem(${i},'price',this.value)" min="0" style="text-align:right"></td>
+        <td><button class="btn btn-danger" onclick="removeItem(${i})">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function g(id) { return document.getElementById(id)?.value ?? ''; }
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function money(n) { return '¥' + Math.round(n).toLocaleString(); }
+  function fmtDate(s) {
+    if (!s) return '—';
+    const [y,m,d] = s.split('-');
+    return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+  }
+
+  function render() {
+    const taxRate    = parseFloat(document.getElementById('taxRate').value);
+    const subtotal   = items.reduce((s, it) => s + it.qty * it.price, 0);
+    const tax        = Math.floor(subtotal * taxRate);
+    const total      = subtotal + tax;
+    const taxLabel   = taxRate === 0 ? '非課税' : `消費税（${taxRate*100|0}%）`;
+
+    const rows = items.map(it => `
+      <tr>
+        <td>${esc(it.name)}</td>
+        <td class="text-right">${it.qty.toLocaleString()}</td>
+        <td class="text-right">${money(it.price)}</td>
+        <td class="text-right">${money(it.qty * it.price)}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('invoice').innerHTML = `
+      <div class="inv-title">請　求　書</div>
+
+      <div class="inv-meta">
+        <div class="inv-to">
+          <div class="client-name">${esc(g('clientName'))} <span class="honorific">御中</span></div>
+        </div>
+        <div class="inv-info">
+          <div>発行日：${fmtDate(g('issueDate'))}</div>
+        </div>
+      </div>
+
+      <div class="inv-from">
+        <div class="from-name">${esc(g('fromName'))}</div>
+        <div>${esc(g('fromAddress'))}</div>
+        ${g('fromTel') ? `<div>TEL: ${esc(g('fromTel'))}</div>` : ''}
+        ${g('fromEmail') ? `<div>${esc(g('fromEmail'))}</div>` : ''}
+      </div>
+
+      <div class="inv-total-box">
+        <div class="inv-total-label">ご請求金額（税込）</div>
+        <div class="inv-total-amount"><span>¥</span>${total.toLocaleString()}</div>
+      </div>
+
+      <table class="inv-table">
+        <thead>
+          <tr>
+            <th>品目</th>
+            <th class="text-right">数量</th>
+            <th class="text-right">単価</th>
+            <th class="text-right">金額</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <table class="inv-subtotals">
+        <tr><td>小計</td><td>${money(subtotal)}</td></tr>
+        <tr><td>${taxLabel}</td><td>${money(tax)}</td></tr>
+        <tr class="total-row"><td>合計</td><td>${money(total)}</td></tr>
+      </table>
+
+      <div class="inv-notes">
+        ${g('bankName') || g('bankAccount') ? `
+          <div class="block">
+            <h4>お振込先</h4>
+            <div class="content">${[g('bankName'), g('bankAccount'), g('bankHolder') ? '名義：' + g('bankHolder') : ''].filter(Boolean).join('\n')}</div>
+          </div>
+        ` : ''}
+        ${g('notes') ? `
+          <div class="block">
+            <h4>備考</h4>
+            <div class="content">${esc(g('notes'))}</div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  function printInvoice() {
+    window.print();
+  }
+
+  // 初期描画
+  renderEditor();
+  render();
+</script>
+</body>
+</html>
