@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>請求書作成</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -365,11 +367,8 @@
 
   <div class="section">
     <button class="btn btn-success no-print" onclick="printInvoice()">
-      📄 PDFで保存 / 印刷
+      📄 PDFで保存
     </button>
-    <p style="font-size:11px;color:#aaa;text-align:center;margin-top:8px">
-      印刷ダイアログで「PDFとして保存」を選択してください
-    </p>
   </div>
 </div>
 
@@ -510,8 +509,33 @@
     `;
   }
 
-  function printInvoice() {
-    window.print();
+  async function printInvoice() {
+    const btn = document.querySelector('.btn-success');
+    btn.textContent = '⏳ 生成中...';
+    btn.disabled = true;
+
+    try {
+      const invoice = document.getElementById('invoice');
+      const canvas = await html2canvas(invoice, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * pageW) / canvas.width;
+      const finalH = Math.min(imgH, pageH);
+      pdf.addImage(imgData, 'PNG', 0, 0, imgW, finalH);
+
+      const clientName = document.getElementById('clientName').value || '請求書';
+      pdf.save(`${clientName}_請求書.pdf`);
+    } catch(e) {
+      alert('PDF生成に失敗しました。もう一度お試しください。');
+    }
+
+    btn.textContent = '📄 PDFで保存';
+    btn.disabled = false;
   }
 
   // 初期描画
