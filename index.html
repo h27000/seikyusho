@@ -304,19 +304,19 @@
   <div class="section">
     <h3>請求先</h3>
     <label>会社名 / 氏名</label>
-    <input type="text" id="clientName" value="株式会社サンプル" oninput="render()">
+    <input type="text" id="clientName" value="テクノポリス" oninput="render()">
   </div>
 
   <div class="section">
     <h3>発行者情報</h3>
     <label>会社名 / 氏名</label>
-    <input type="text" id="fromName" value="田中 花子" oninput="render()">
+    <input type="text" id="fromName" value="FAR★STAR" oninput="render()">
     <label>住所</label>
-    <input type="text" id="fromAddress" value="東京都渋谷区○○1-2-3" oninput="render()">
+    <input type="text" id="fromAddress" value="東京都杉並区高円寺南2-40-41 小野村ビル101" oninput="render()">
     <label>電話番号</label>
-    <input type="text" id="fromTel" value="03-0000-0000" oninput="render()">
+    <input type="text" id="fromTel" value="090-9916-5569" oninput="render()">
     <label>メールアドレス</label>
-    <input type="text" id="fromEmail" value="example@email.com" oninput="render()">
+    <input type="text" id="fromEmail" value="" oninput="render()">
   </div>
 
   <div class="section">
@@ -353,16 +353,16 @@
   <div class="section">
     <h3>振込先</h3>
     <label>銀行名</label>
-    <input type="text" id="bankName" value="○○銀行 △△支店" oninput="render()">
+    <input type="text" id="bankName" value="三菱UFJ銀行栄町支店" oninput="render()">
     <label>口座種別・番号</label>
-    <input type="text" id="bankAccount" value="普通 1234567" oninput="render()">
+    <input type="text" id="bankAccount" value="普通 4650396" oninput="render()">
     <label>口座名義</label>
-    <input type="text" id="bankHolder" value="タナカ ハナコ" oninput="render()">
+    <input type="text" id="bankHolder" value="ファースター" oninput="render()">
   </div>
 
   <div class="section">
     <h3>備考</h3>
-    <textarea id="notes" rows="3" oninput="render()">お振込手数料はご負担ください。</textarea>
+    <textarea id="notes" rows="3" oninput="render()">振込手数料はご負担ください。</textarea>
   </div>
 
   <div class="section">
@@ -381,17 +381,63 @@
 </div>
 
 <script>
+  const STORAGE_KEY = 'seikyusho_data';
+
   // 初期明細データ
   let items = [
-    { name: 'Webサイト制作', qty: 1, price: 150000 },
-    { name: 'デザイン費',    qty: 1, price:  50000 },
-    { name: '月次保守費',    qty: 3, price:  20000 },
+    { name: 'CHARGEEEEEE 人物Tシャツ（25年7月）', qty: 1, price: 2772 },
+    { name: 'うずうずくん トートバッグ（25年7月）', qty: 1, price: 1650 },
+    { name: '日の丸 ショート丈T 赤白（25年8月）', qty: 1, price: 2310 },
+    { name: '百目レギンス（25年8月）', qty: 1, price: 1188 },
+    { name: 'アナーキッコウ（25年8月）', qty: 1, price: 2772 },
+    { name: 'COW変形ビッグカットソー（25年8月）', qty: 1, price: 2772 },
+    { name: 'コスモス Mサイズ（25年9月）', qty: 1, price: 4620 },
+    { name: '目苺BIG T ブラック×ホワイト（25年9月）', qty: 1, price: 2772 },
+    { name: '百目ハーフパンツ（25年9月）', qty: 1, price: 4620 },
+    { name: '日の丸リバーシブルカットソー（モノトーン）（25年9月）', qty: 1, price: 3696 },
+    { name: 'クロススカル（25年10月）', qty: 1, price: 2772 },
+    { name: 'DEAD OR ALIVE（25年10月）', qty: 1, price: 2772 },
+    { name: '目苺変形ビッグカットソー（25年12月）', qty: 1, price: 2772 },
+    { name: 'コスモスパーカー ブラック（26年3月）', qty: 1, price: 8250 },
+    { name: 'タイダイオクトパスT（26年5月）', qty: 1, price: 2772 },
   ];
 
-  // 今日の日付を初期値にセット
+  // localStorage から復元
+  function loadState() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return false;
+    try {
+      const state = JSON.parse(saved);
+      if (state.items) items = state.items;
+      ['clientName','fromName','fromAddress','fromTel','fromEmail',
+       'invNumber','issueDate','bankName','bankAccount','bankHolder','notes'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && state[id] !== undefined) el.value = state[id];
+      });
+      if (state.taxRate !== undefined)
+        document.getElementById('taxRate').value = state.taxRate;
+      return true;
+    } catch(e) { return false; }
+  }
+
+  // localStorage へ保存
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      clientName: g('clientName'), fromName: g('fromName'),
+      fromAddress: g('fromAddress'), fromTel: g('fromTel'),
+      fromEmail: g('fromEmail'), invNumber: g('invNumber'),
+      issueDate: g('issueDate'), bankName: g('bankName'),
+      bankAccount: g('bankAccount'), bankHolder: g('bankHolder'),
+      notes: g('notes'), taxRate: g('taxRate'), items
+    }));
+  }
+
+  // 今日の日付を初期値にセット（localStorage になければ）
   const today = new Date();
   const fmt = d => d.toISOString().split('T')[0];
-  document.getElementById('issueDate').value = fmt(today);
+  if (!loadState()) {
+    document.getElementById('issueDate').value = fmt(today);
+  }
 
   function addItem() {
     items.push({ name: '', qty: 1, price: 0 });
@@ -507,6 +553,7 @@
         ` : ''}
       </div>
     `;
+    saveState();
   }
 
   async function printInvoice() {
