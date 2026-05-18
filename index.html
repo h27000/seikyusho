@@ -580,20 +580,7 @@
       pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgW, imgH);
 
       const clientName = document.getElementById('clientName').value || '請求書';
-      const fileName = `${clientName}_請求書.pdf`;
-
-      if (window.showSaveFilePicker) {
-        const fileHandle = await window.showSaveFilePicker({
-          suggestedName: fileName,
-          startIn: 'desktop',
-          types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }]
-        });
-        const writable = await fileHandle.createWritable();
-        await writable.write(pdf.output('blob'));
-        await writable.close();
-      } else {
-        pdf.save(fileName);
-      }
+      pdf.save(`${clientName}_請求書.pdf`);
     } catch(e) {
       alert('PDF生成に失敗しました。もう一度お試しください。');
     }
