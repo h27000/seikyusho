@@ -523,10 +523,12 @@
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW;
-      const imgH = (canvas.height * pageW) / canvas.width;
-      const finalH = Math.min(imgH, pageH);
-      pdf.addImage(imgData, 'PNG', 0, 0, imgW, finalH);
+      const scaleW = pageW / canvas.width;
+      const scaleH = pageH / canvas.height;
+      const scale = Math.min(scaleW, scaleH);
+      const imgW = canvas.width * scale;
+      const imgH = canvas.height * scale;
+      pdf.addImage(imgData, 'PNG', 0, 0, imgW, imgH);
 
       const clientName = document.getElementById('clientName').value || '請求書';
       pdf.save(`${clientName}_請求書.pdf`);
