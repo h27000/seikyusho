@@ -575,7 +575,9 @@
       const scale = Math.min(scaleW, scaleH);
       const imgW = canvas.width * scale;
       const imgH = canvas.height * scale;
-      pdf.addImage(imgData, 'PNG', 0, 0, imgW, imgH);
+      const xOffset = (pageW - imgW) / 2;
+      const yOffset = (pageH - imgH) / 2;
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgW, imgH);
 
       const clientName = document.getElementById('clientName').value || '請求書';
       pdf.save(`${clientName}_請求書.pdf`);
