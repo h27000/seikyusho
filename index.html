@@ -480,10 +480,14 @@
 
   // 今日の日付を初期値にセット（localStorage になければ）
   const today = new Date();
-  const fmt = d => d.toISOString().split('T')[0];
-  if (!loadState()) {
-    document.getElementById('issueDate').value = fmt(today);
-  }
+  const fmt = d => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  loadState();
+  document.getElementById('issueDate').value = fmt(today);
 
   function addItem() {
     items.push({ name: '', qty: 1, price: 0, rate: 1 });
@@ -514,8 +518,13 @@
         <td><input type="number" value="${item.qty}"         oninput="updateItem(${i},'qty',this.value)"  min="1"  style="text-align:right"></td>
         <td><input type="number" value="${item.price}"       oninput="updateItem(${i},'price',this.value)" min="0" style="text-align:right"></td>
         <td>
-          <input type="number" value="${rate}" step="0.01" min="0" max="1"
-            oninput="updateItem(${i},'rate',this.value)" style="text-align:right">
+          <select onchange="updateItem(${i},'rate',this.value)" style="width:100%;padding:4px 4px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;color:#333">
+            <option value="0.5"  ${rate===0.5?'selected':''}>50%</option>
+            <option value="0.6"  ${rate===0.6?'selected':''}>60%</option>
+            <option value="0.7"  ${rate===0.7?'selected':''}>70%</option>
+            <option value="0.8"  ${rate===0.8?'selected':''}>80%</option>
+            <option value="1"    ${rate===1  ?'selected':''}>掛なし</option>
+          </select>
           <div style="font-size:10px;color:#aaa;text-align:right;margin-top:2px">→¥${unitPrice.toLocaleString()}</div>
         </td>
         <td><button class="btn btn-danger" onclick="removeItem(${i})">✕</button></td>
