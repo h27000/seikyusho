@@ -366,10 +366,11 @@
     <table id="items-editor">
       <thead>
         <tr>
-          <th style="width:40%">品目</th>
-          <th style="width:18%">数量</th>
-          <th style="width:25%">単価</th>
-          <th style="width:17%"></th>
+          <th style="width:32%">品目</th>
+          <th style="width:13%">数量</th>
+          <th style="width:20%">定価</th>
+          <th style="width:16%">掛け率</th>
+          <th style="width:19%"></th>
         </tr>
       </thead>
       <tbody id="itemsBody"></tbody>
@@ -430,21 +431,21 @@
 
   // 初期明細データ
   let items = [
-    { name: 'CHARGEEEEEE 人物Tシャツ（25年7月）', qty: 1, price: 2772 },
-    { name: 'うずうずくん トートバッグ（25年7月）', qty: 1, price: 1650 },
-    { name: '日の丸 ショート丈T 赤白（25年8月）', qty: 1, price: 2310 },
-    { name: '百目レギンス（25年8月）', qty: 1, price: 1188 },
-    { name: 'アナーキッコウ（25年8月）', qty: 1, price: 2772 },
-    { name: 'COW変形ビッグカットソー（25年8月）', qty: 1, price: 2772 },
-    { name: 'コスモス Mサイズ（25年9月）', qty: 1, price: 4620 },
-    { name: '目苺BIG T ブラック×ホワイト（25年9月）', qty: 1, price: 2772 },
-    { name: '百目ハーフパンツ（25年9月）', qty: 1, price: 4620 },
-    { name: '日の丸リバーシブルカットソー（モノトーン）（25年9月）', qty: 1, price: 3696 },
-    { name: 'クロススカル（25年10月）', qty: 1, price: 2772 },
-    { name: 'DEAD OR ALIVE（25年10月）', qty: 1, price: 2772 },
-    { name: '目苺変形ビッグカットソー（25年12月）', qty: 1, price: 2772 },
-    { name: 'コスモスパーカー ブラック（26年3月）', qty: 1, price: 8250 },
-    { name: 'タイダイオクトパスT（26年5月）', qty: 1, price: 2772 },
+    { name: 'CHARGEEEEEE 人物Tシャツ（25年7月）', qty: 1, price: 2772, rate: 1 },
+    { name: 'うずうずくん トートバッグ（25年7月）', qty: 1, price: 1650, rate: 1 },
+    { name: '日の丸 ショート丈T 赤白（25年8月）', qty: 1, price: 2310, rate: 1 },
+    { name: '百目レギンス（25年8月）', qty: 1, price: 1188, rate: 1 },
+    { name: 'アナーキッコウ（25年8月）', qty: 1, price: 2772, rate: 1 },
+    { name: 'COW変形ビッグカットソー（25年8月）', qty: 1, price: 2772, rate: 1 },
+    { name: 'コスモス Mサイズ（25年9月）', qty: 1, price: 4620, rate: 1 },
+    { name: '目苺BIG T ブラック×ホワイト（25年9月）', qty: 1, price: 2772, rate: 1 },
+    { name: '百目ハーフパンツ（25年9月）', qty: 1, price: 4620, rate: 1 },
+    { name: '日の丸リバーシブルカットソー（モノトーン）（25年9月）', qty: 1, price: 3696, rate: 1 },
+    { name: 'クロススカル（25年10月）', qty: 1, price: 2772, rate: 1 },
+    { name: 'DEAD OR ALIVE（25年10月）', qty: 1, price: 2772, rate: 1 },
+    { name: '目苺変形ビッグカットソー（25年12月）', qty: 1, price: 2772, rate: 1 },
+    { name: 'コスモスパーカー ブラック（26年3月）', qty: 1, price: 8250, rate: 1 },
+    { name: 'タイダイオクトパスT（26年5月）', qty: 1, price: 2772, rate: 1 },
   ];
 
   // localStorage から復元
@@ -485,7 +486,7 @@
   }
 
   function addItem() {
-    items.push({ name: '', qty: 1, price: 0 });
+    items.push({ name: '', qty: 1, price: 0, rate: 1 });
     renderEditor();
     render();
   }
@@ -505,11 +506,18 @@
     const tbody = document.getElementById('itemsBody');
     tbody.innerHTML = '';
     items.forEach((item, i) => {
+      const rate = item.rate ?? 1;
+      const unitPrice = Math.round(item.price * rate);
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><input type="text"   value="${esc(item.name)}"  oninput="updateItem(${i},'name',this.value)"  placeholder="品目名"></td>
-        <td><input type="number" value="${item.qty}"         oninput="updateItem(${i},'qty',this.value)"   min="1" style="text-align:right"></td>
+        <td><input type="text"   value="${esc(item.name)}"  oninput="updateItem(${i},'name',this.value)" placeholder="品目名"></td>
+        <td><input type="number" value="${item.qty}"         oninput="updateItem(${i},'qty',this.value)"  min="1"  style="text-align:right"></td>
         <td><input type="number" value="${item.price}"       oninput="updateItem(${i},'price',this.value)" min="0" style="text-align:right"></td>
+        <td>
+          <input type="number" value="${rate}" step="0.01" min="0" max="1"
+            oninput="updateItem(${i},'rate',this.value)" style="text-align:right">
+          <div style="font-size:10px;color:#aaa;text-align:right;margin-top:2px">→¥${unitPrice.toLocaleString()}</div>
+        </td>
         <td><button class="btn btn-danger" onclick="removeItem(${i})">✕</button></td>
       `;
       tbody.appendChild(tr);
@@ -527,19 +535,21 @@
 
   function render() {
     const taxRate    = parseFloat(document.getElementById('taxRate').value);
-    const subtotal   = items.reduce((s, it) => s + it.qty * it.price, 0);
+    const subtotal   = items.reduce((s, it) => s + it.qty * Math.round(it.price * (it.rate ?? 1)), 0);
     const tax        = Math.floor(subtotal * taxRate);
     const total      = subtotal + tax;
     const taxLabel   = taxRate === 0 ? '非課税' : `消費税（${taxRate*100|0}%）`;
 
-    const rows = items.map(it => `
+    const rows = items.map(it => {
+      const unitPrice = Math.round(it.price * (it.rate ?? 1));
+      return `
       <tr>
         <td>${esc(it.name)}</td>
         <td class="text-right">${it.qty.toLocaleString()}</td>
-        <td class="text-right">${money(it.price)}</td>
-        <td class="text-right">${money(it.qty * it.price)}</td>
-      </tr>
-    `).join('');
+        <td class="text-right">${money(unitPrice)}</td>
+        <td class="text-right">${money(it.qty * unitPrice)}</td>
+      </tr>`;
+    }).join('');
 
     const isInvoice = currentMode === 'invoice';
     const titleText = isInvoice ? '請　求　書' : '納　品　書';
