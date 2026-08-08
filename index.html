@@ -26,11 +26,23 @@
     position: fixed;
     top: 0; left: 0; bottom: 0;
     background: #fff;
-    border-right: 1px solid #ddd;
+    border-right: none;
     overflow-y: auto;
     padding: 20px;
     z-index: 10;
   }
+
+  #resizer {
+    position: fixed;
+    top: 0; bottom: 0;
+    left: 650px;
+    width: 6px;
+    cursor: col-resize;
+    background: #e0e4ea;
+    z-index: 20;
+    transition: background 0.15s;
+  }
+  #resizer:hover, #resizer.dragging { background: #4f8ef7; }
 
   .mode-toggle {
     display: flex;
@@ -419,6 +431,8 @@
   </div>
 </div>
 
+<div id="resizer"></div>
+
 <!-- ===== プレビューエリア ===== -->
 <div id="preview-area">
   <h2>プレビュー</h2>
@@ -733,6 +747,40 @@
   // 初期描画
   renderEditor();
   render();
+
+  // ===== リサイザー =====
+  const resizerEl     = document.getElementById('resizer');
+  const editorEl      = document.getElementById('editor');
+  const previewAreaEl = document.getElementById('preview-area');
+  const EDITOR_W_KEY  = 'editorWidth';
+
+  function setEditorWidth(w) {
+    w = Math.max(300, Math.min(w, window.innerWidth - 300));
+    editorEl.style.width      = w + 'px';
+    resizerEl.style.left      = w + 'px';
+    previewAreaEl.style.marginLeft = w + 'px';
+  }
+
+  const savedEditorW = localStorage.getItem(EDITOR_W_KEY);
+  if (savedEditorW) setEditorWidth(parseInt(savedEditorW));
+
+  resizerEl.addEventListener('mousedown', e => {
+    e.preventDefault();
+    resizerEl.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onResizerMove);
+    document.addEventListener('mouseup', onResizerUp);
+  });
+
+  function onResizerMove(e) { setEditorWidth(e.clientX); }
+
+  function onResizerUp() {
+    resizerEl.classList.remove('dragging');
+    document.body.style.userSelect = '';
+    localStorage.setItem(EDITOR_W_KEY, editorEl.offsetWidth);
+    document.removeEventListener('mousemove', onResizerMove);
+    document.removeEventListener('mouseup', onResizerUp);
+  }
 </script>
 </body>
 </html>
