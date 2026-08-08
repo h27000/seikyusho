@@ -366,16 +366,18 @@
     <table id="items-editor">
       <thead>
         <tr>
-          <th style="width:36%">品目</th>
-          <th style="width:13%">数量</th>
-          <th style="width:22%">定価</th>
+          <th style="width:8%"></th>
+          <th style="width:30%">品目</th>
+          <th style="width:11%">数量</th>
+          <th style="width:19%">定価</th>
           <th style="width:16%">掛なし</th>
-          <th style="width:13%"></th>
+          <th style="width:16%"></th>
         </tr>
       </thead>
       <tbody id="itemsBody"></tbody>
     </table>
     <button class="btn btn-primary no-print" style="margin-top:10px;width:100%" onclick="addItem()">＋ 明細を追加</button>
+    <div id="trash-section"></div>
 
     <label style="margin-top:14px">掛け率（全品目共通）</label>
     <select id="itemRate" onchange="render()" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;color:#333">
@@ -427,6 +429,8 @@
 <script>
   const STORAGE_KEY = 'seikyusho_data';
   let currentMode = 'invoice';
+  let trashedItems = [];
+  let trashOpen = false;
 
   function setMode(mode) {
     currentMode = mode;
@@ -464,6 +468,7 @@
     try {
       const state = JSON.parse(saved);
       if (state.items) items = state.items;
+      if (state.trashedItems) trashedItems = state.trashedItems;
       ['clientName','fromName','fromAddress','fromTel','fromEmail',
        'invNumber','issueDate','bankName','bankAccount','bankHolder','notes'].forEach(id => {
         const el = document.getElementById(id);
@@ -485,7 +490,7 @@
       fromEmail: g('fromEmail'), invNumber: g('invNumber'),
       issueDate: g('issueDate'), bankName: g('bankName'),
       bankAccount: g('bankAccount'), bankHolder: g('bankHolder'),
-      notes: g('notes'), taxRate: g('taxRate'), itemRate: g('itemRate'), items
+      notes: g('notes'), taxRate: g('taxRate'), itemRate: g('itemRate'), items, trashedItems
     }));
   }
 
@@ -507,9 +512,61 @@
   }
 
   function removeItem(i) {
+    trashedItems.unshift({ ...items[i], deletedAt: Date.now() });
     items.splice(i, 1);
     renderEditor();
     render();
+  }
+
+  function moveItem(i, dir) {
+    const j = i + dir;
+    if (j < 0 || j >= items.length) return;
+    [items[i], items[j]] = [items[j], items[i]];
+    renderEditor();
+    render();
+  }
+
+  function restoreItem(i) {
+    const item = { ...trashedItems[i] };
+    delete item.deletedAt;
+    items.push(item);
+    trashedItems.splice(i, 1);
+    renderEditor();
+    render();
+  }
+
+  function hardDeleteItem(i) {
+    trashedItems.splice(i, 1);
+    renderTrash();
+    saveState();
+  }
+
+  function toggleTrash() {
+    trashOpen = !trashOpen;
+    renderTrash();
+  }
+
+  function renderTrash() {
+    const sec = document.getElementById('trash-section');
+    if (!sec) return;
+    if (!trashedItems.length) { sec.innerHTML = ''; return; }
+    const rows = trashedItems.map((item, i) => `
+      <tr style="border-bottom:1px solid #f0f0f0">
+        <td style="font-size:12px;color:#999;padding:6px 4px;word-break:break-all">${esc(item.name) || '（品目名なし）'}</td>
+        <td style="white-space:nowrap;padding:4px 0">
+          <button class="btn" style="background:#4f8ef7;color:#fff;font-size:11px;padding:4px 8px;margin-right:2px" onclick="restoreItem(${i})">戻す</button>
+          <button class="btn btn-danger" style="font-size:11px;padding:4px 8px" onclick="hardDeleteItem(${i})">完全削除</button>
+        </td>
+      </tr>
+    `).join('');
+    sec.innerHTML = `
+      <div style="margin-top:10px;border:1px solid #f0d0d0;border-radius:6px;overflow:hidden">
+        <button onclick="toggleTrash()" style="background:#fff5f5;border:none;cursor:pointer;font-size:12px;color:#c0392b;padding:8px 12px;width:100%;text-align:left;display:flex;align-items:center;gap:6px;font-family:inherit">
+          <span>${trashOpen ? '▼' : '▶'}</span>🗑 ゴミ箱（${trashedItems.length}件）
+        </button>
+        ${trashOpen ? `<table style="width:100%;border-collapse:collapse;padding:0 8px;display:block;padding:4px 8px">${rows}</table>` : ''}
+      </div>
+    `;
   }
 
   function updateItem(i, field, val) {
@@ -524,8 +581,14 @@
     tbody.innerHTML = '';
     items.forEach((item, i) => {
       const noRate = item.noRate || false;
+      const isFirst = i === 0;
+      const isLast = i === items.length - 1;
       const tr = document.createElement('tr');
       tr.innerHTML = `
+        <td style="padding:2px;white-space:nowrap">
+          <button class="btn" onclick="moveItem(${i},-1)" ${isFirst?'disabled':''} style="background:#eee;color:#555;font-size:10px;padding:2px 5px;display:block;margin-bottom:2px;width:100%;opacity:${isFirst?'0.3':'1'}">▲</button>
+          <button class="btn" onclick="moveItem(${i}, 1)" ${isLast ?'disabled':''} style="background:#eee;color:#555;font-size:10px;padding:2px 5px;display:block;width:100%;opacity:${isLast?'0.3':'1'}">▼</button>
+        </td>
         <td><input type="text"   value="${esc(item.name)}"  oninput="updateItem(${i},'name',this.value)" placeholder="品目名"></td>
         <td><input type="number" value="${item.qty}"         oninput="updateItem(${i},'qty',this.value)"  min="1"  style="text-align:right"></td>
         <td><input type="number" value="${item.price}"       oninput="updateItem(${i},'price',this.value)" min="0" style="text-align:right"></td>
@@ -538,6 +601,7 @@
       `;
       tbody.appendChild(tr);
     });
+    renderTrash();
   }
 
   function g(id) { return document.getElementById(id)?.value ?? ''; }
