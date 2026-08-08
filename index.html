@@ -573,7 +573,6 @@
   function updateItem(i, field, val) {
     if (field === 'noRate') items[i][field] = val;
     else items[i][field] = field === 'name' ? val : (parseFloat(val) || 0);
-    renderEditor();
     render();
   }
 
