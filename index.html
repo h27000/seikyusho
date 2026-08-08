@@ -366,16 +366,24 @@
     <table id="items-editor">
       <thead>
         <tr>
-          <th style="width:32%">品目</th>
-          <th style="width:13%">数量</th>
-          <th style="width:20%">定価</th>
-          <th style="width:16%">掛け率</th>
-          <th style="width:19%"></th>
+          <th style="width:40%">品目</th>
+          <th style="width:15%">数量</th>
+          <th style="width:25%">定価</th>
+          <th style="width:20%"></th>
         </tr>
       </thead>
       <tbody id="itemsBody"></tbody>
     </table>
     <button class="btn btn-primary no-print" style="margin-top:10px;width:100%" onclick="addItem()">＋ 明細を追加</button>
+
+    <label style="margin-top:14px">掛け率（全品目共通）</label>
+    <select id="itemRate" onchange="render()" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;color:#333">
+      <option value="0.5">50%</option>
+      <option value="0.6">60%</option>
+      <option value="0.7">70%</option>
+      <option value="0.8">80%</option>
+      <option value="1" selected>掛なし</option>
+    </select>
 
     <label style="margin-top:14px">消費税率</label>
     <select id="taxRate" onchange="render()" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;color:#333">
@@ -462,6 +470,8 @@
       });
       if (state.taxRate !== undefined)
         document.getElementById('taxRate').value = state.taxRate;
+      if (state.itemRate !== undefined)
+        document.getElementById('itemRate').value = state.itemRate;
       return true;
     } catch(e) { return false; }
   }
@@ -474,7 +484,7 @@
       fromEmail: g('fromEmail'), invNumber: g('invNumber'),
       issueDate: g('issueDate'), bankName: g('bankName'),
       bankAccount: g('bankAccount'), bankHolder: g('bankHolder'),
-      notes: g('notes'), taxRate: g('taxRate'), items
+      notes: g('notes'), taxRate: g('taxRate'), itemRate: g('itemRate'), items
     }));
   }
 
@@ -510,23 +520,11 @@
     const tbody = document.getElementById('itemsBody');
     tbody.innerHTML = '';
     items.forEach((item, i) => {
-      const rate = item.rate ?? 1;
-      const unitPrice = Math.round(item.price * rate);
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><input type="text"   value="${esc(item.name)}"  oninput="updateItem(${i},'name',this.value)" placeholder="品目名"></td>
         <td><input type="number" value="${item.qty}"         oninput="updateItem(${i},'qty',this.value)"  min="1"  style="text-align:right"></td>
         <td><input type="number" value="${item.price}"       oninput="updateItem(${i},'price',this.value)" min="0" style="text-align:right"></td>
-        <td>
-          <select onchange="updateItem(${i},'rate',this.value)" style="width:100%;padding:4px 4px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;color:#333">
-            <option value="0.5"  ${rate===0.5?'selected':''}>50%</option>
-            <option value="0.6"  ${rate===0.6?'selected':''}>60%</option>
-            <option value="0.7"  ${rate===0.7?'selected':''}>70%</option>
-            <option value="0.8"  ${rate===0.8?'selected':''}>80%</option>
-            <option value="1"    ${rate===1  ?'selected':''}>掛なし</option>
-          </select>
-          <div style="font-size:10px;color:#aaa;text-align:right;margin-top:2px">→¥${unitPrice.toLocaleString()}</div>
-        </td>
         <td><button class="btn btn-danger" onclick="removeItem(${i})">✕</button></td>
       `;
       tbody.appendChild(tr);
@@ -544,13 +542,14 @@
 
   function render() {
     const taxRate    = parseFloat(document.getElementById('taxRate').value);
-    const subtotal   = items.reduce((s, it) => s + it.qty * Math.round(it.price * (it.rate ?? 1)), 0);
+    const itemRate   = parseFloat(document.getElementById('itemRate').value);
+    const subtotal   = items.reduce((s, it) => s + it.qty * Math.round(it.price * itemRate), 0);
     const tax        = Math.floor(subtotal * taxRate);
     const total      = subtotal + tax;
     const taxLabel   = taxRate === 0 ? '非課税' : `消費税（${taxRate*100|0}%）`;
 
     const rows = items.map(it => {
-      const unitPrice = Math.round(it.price * (it.rate ?? 1));
+      const unitPrice = Math.round(it.price * itemRate);
       return `
       <tr>
         <td>${esc(it.name)}</td>
