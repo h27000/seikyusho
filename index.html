@@ -649,7 +649,6 @@
 
     document.getElementById('invoice').innerHTML = `
       <div class="inv-title">${titleText}</div>
-      <div style="text-align:center;font-size:13px;color:#666;margin-bottom:24px">${isInvoice ? '下記の通りご請求申し上げます。' : '下記の通り納品いたします。'}</div>
 
       <div class="inv-meta">
         <div class="inv-to">
@@ -666,6 +665,8 @@
         ${g('fromTel') ? `<div>TEL: ${esc(g('fromTel'))}</div>` : ''}
         ${g('fromEmail') ? `<div>${esc(g('fromEmail'))}</div>` : ''}
       </div>
+
+      <div style="text-align:center;font-size:13px;color:#666;margin-bottom:12px">${isInvoice ? '下記の通りご請求申し上げます。' : '下記の通り納品いたします。'}</div>
 
       ${isInvoice ? `
       <div class="inv-total-box">
